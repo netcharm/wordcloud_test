@@ -69,11 +69,11 @@ def filter_tags(htmlstr):
     return s
 
 def replaceCharEntity(htmlstr):
-    CHAR_ENTITIES={'nbsp':' ','160':' ',
-                'lt':'<','60':'<',
-                'gt':'>','62':'>',
-                'amp':'&','38':'&',
-                'quot':'"','34':'"',}
+    CHAR_ENTITIES={'&nbsp':' ','&160':' ',
+                '&lt':'<','&60':'<',
+                '&gt':'>','&62':'>',
+                '&amp':'&','&38':'&',
+                '&quot':'"','&34':'"',}
 
     for k in CHAR_ENTITIES:
       htmlstr = htmlstr.replace(k, CHAR_ENTITIES[k])
