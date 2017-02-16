@@ -162,6 +162,10 @@ if __name__ == '__main__':
   else:
     flist = glob(sys.argv[1])
 
+  if len(flist)<=0:
+    print(u'Text fils(s) can not loaded. File(s) name error or not exists.')
+    exit()
+
   st = time()
   print(u'-'*72)
   print(u'Loading text file(s)......')
