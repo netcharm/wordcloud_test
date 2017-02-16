@@ -50,12 +50,43 @@ STOPWORDS = path.join(CWD, "stopwords.txt")
 FONTPATH = path.join(CWD, "NotoSansCJKsc-DemiLight.otf")
 #print(os.path.isfile(FONTPATH))
 
+def filter_tags(htmlstr):
+    re_cdata   = re.compile(r'//<!\[CDATA\[[^>]*//\]\]>',re.I)
+    re_script  = re.compile(r'<\s*script[^>]*>[^<]*<\s*/\s*script\s*>',re.I)
+    re_style   = re.compile(r'<\s*style[^>]*>[^<]*<\s*/\s*style\s*>',re.I)
+    re_br      = re.compile(r'<br\s*?/?>')
+    re_h       = re.compile(r'</?\w+[^>]*>')
+    re_comment = re.compile(r'<!--[^>]*-->')
+
+    s = re_cdata.sub('',htmlstr)
+    s = re_script.sub('',s)
+    s = re_style.sub('',s)
+    s = re_br.sub('\n',s)
+    s = re_h.sub('',s)
+    s = re_comment.sub('',s)
+
+    s = replaceCharEntity(s)
+    return s
+
+def replaceCharEntity(htmlstr):
+    CHAR_ENTITIES={'nbsp':' ','160':' ',
+                'lt':'<','60':'<',
+                'gt':'>','62':'>',
+                'amp':'&','38':'&',
+                'quot':'"','34':'"',}
+
+    for k in CHAR_ENTITIES:
+      htmlstr = htmlstr.replace(k, CHAR_ENTITIES[k])
+    return(htmlstr)
+
 def TextFilter(text, keepNum=False):
   idx = text.find('[Events]')
   if idx >= 0:
     content = text[idx:]
   else:
     content = text
+
+  content = filter_tags(content)
 
   content = re.sub(r'\\N', '', content)
   content = re.sub(r'\{\\kf.*?\}', '', content)
@@ -115,7 +146,7 @@ def CutText(text):
   #print(words_stat)
   return(words_stat)
 
-def CalcCloud(words, num=1000, width=1024, height=1024):
+def CalcCloud(words, num=1000, width=1024, height=1024, bgcolor=None, mask=None):
   # Generate a word cloud image
   #wordcloud = WordCloud(font_path="NotoSansCJKsc-DemiLight.otf", max_font_size=40, background_color="black")
   wordcloud = WordCloud(font_path=FONTPATH,
@@ -123,7 +154,7 @@ def CalcCloud(words, num=1000, width=1024, height=1024):
                         #max_font_size=40,
                         #min_font_size=4,
                         mode='RGBA',
-                        background_color=None)
+                        background_color=bgcolor)
   wordcloud = wordcloud.fit_words(words.head(num).itertuples(index=False))
   return(wordcloud)
 
