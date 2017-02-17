@@ -112,7 +112,7 @@ def LoadTexts(textfiles):
 def LoadText(textfile):
   if not os.path.isfile(textfile): return('')
 
-  print(u'> Loading %s' % os.path.basename(textfile))
+  print(u'> Loading %s' % os.path.basename(textfile.decode(enc)))
   # Read the whole text.
   text = codecs.open(textfile, 'r').read()
 

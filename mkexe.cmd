@@ -1,4 +1,4 @@
-rem @echo off
+@echo off
 
 call cxfreeze-simple cloud.py --target-name=wordcloud.exe
 rem ren cloud.exe wordcloud.exe
