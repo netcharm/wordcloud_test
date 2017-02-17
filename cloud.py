@@ -28,6 +28,13 @@ from PIL import Image
 
 import jieba          #中文分词包
 import MeCab          #日文分词包
+#######################################################
+#set MECAB_PATH=C:\Program Files\MeCab\bin\libmecab.dll
+#set MECAB_CHARSET=utf8 or shift-jis
+#######################################################
+#os.environ['MECAB_PATH']='C:/Program Files/MeCab/bin/libmecab.dll'
+os.environ['MECAB_PATH']='D:\\App\\Booklib\\MeCab\\bin\\libmecab.dll'
+os.environ['MECAB_CHARSET']='utf-16'
 
 from wordcloud import WordCloud
 
@@ -97,23 +104,24 @@ def TextFilter(text, keepNum=False):
   content = filter_tags(content)
 
   content = re.sub(r'\[id:.*?\]', '', content)
-  content = re.sub(r'\[al:.*?\]', '', content, flags=re.IGNORECASE)
-  content = re.sub(r'\[ar:.*?\]', '', content, flags=re.IGNORECASE)
-  content = re.sub(r'\[ti:.*?\]', '', content, flags=re.IGNORECASE)
-  content = re.sub(r'\[by:.*?\]', '', content, flags=re.IGNORECASE)
-  content = re.sub(r'\[la:.*?\]', '', content, flags=re.IGNORECASE)
-  content = re.sub(r'\[offset:.*?\]', '', content, flags=re.IGNORECASE)
-  content = re.sub(r'\[\d+:\d+(\.\d+){0,1}\]', '', content, flags=re.IGNORECASE).replace('[:]', '')
+  content = re.sub(r'\[al:.*?\]', '', content, flags=re.I)
+  content = re.sub(r'\[ar:.*?\]', '', content, flags=re.I)
+  content = re.sub(r'\[ti:.*?\]', '', content, flags=re.I)
+  content = re.sub(r'\[by:.*?\]', '', content, flags=re.I)
+  content = re.sub(r'\[la:.*?\]', '', content, flags=re.I)
+  content = re.sub(r'\[offset:.*?\]', '', content, flags=re.I)
+  content = re.sub(r'\[\d+:\d+(\.\d+){0,1}\]', '', content, flags=re.I).replace('[:]', '')
 
-  content = re.sub(r'\\N', '', content, flags=re.IGNORECASE)
-  content = re.sub(r'\{\\kf.*?\}', '', content, flags=re.IGNORECASE)
-  content = re.sub(r'\\f.*?%', '', content, flags=re.IGNORECASE)
-  content = re.sub(r'\\(3*)c&H.*?&', '', content, flags=re.IGNORECASE)
+  content = re.sub(r'\\N', '', content, flags=re.I)
+  content = re.sub(r'\{\\kf.*?\}', '', content, flags=re.I)
+  content = re.sub(r'\\f.*?%', '', content, flags=re.I)
+  content = re.sub(r'\\(3*)c&H.*?&', '', content, flags=re.I)
 
-  content = re.sub(r'[\u0001-\u009F, \.]', ' ', content, flags=re.IGNORECASE)
+  content = re.sub(ur'[\u0001-\u009F]', ' ', content, flags=re.I|re.U)
+  content = re.sub(r'[\.|·]', ' ', content, flags=re.I)
 
   if not keepNum:
-    content = re.sub(r'\d+', '', content, flags=re.IGNORECASE).replace('.', '')
+    content = re.sub(r'\d+', '', content, flags=re.I).replace('.', '')
 
   return(content)
 
@@ -145,11 +153,15 @@ def CutText(text, userdict=None, stopword=None, lang='cn'):
   segment = []
   if lang.lower()=='jp':
     m = MeCab.Tagger("-Ochasen")
+    d = m.dictionary_info()
+    print('> Using MeCab dict %s @ %s' % (d.filename.encode(enc), d.charset))
     ts = m.parseToNode((text.encode('utf8')))
     segs = []
     while ts:
       #print ts.surface, "\t", ts.feature
+      #print(len(segs), ts.surface)
       try:
+        #if ts.surface=='\r' or ts.surface=='': pass
         segs.append(unicode(ts.surface))
       except:
         pass
@@ -157,11 +169,11 @@ def CutText(text, userdict=None, stopword=None, lang='cn'):
     pass
   else:
     if userdict and os.path.isfile(userdict):
-      print('Loading userdicts for cutting...')
+      print('> Loading userdicts for Jieba cutting...')
       jieba.load_userdict(userdict)
       print(u'-'*72)
     elif os.path.isfile(USERDICTS):
-      print('Loading userdicts for cutting...')
+      print('> Loading userdicts for Jieba cutting...')
       jieba.load_userdict(USERDICTS)
       print(u'-'*72)
 
