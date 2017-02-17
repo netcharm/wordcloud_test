@@ -246,20 +246,31 @@ def ShowImage(image):
 def Usage():
   print(u'usage: %s [options] <[-i] input textfile>' % os.path.basename(SCRIPTNAME) )
   print(u'  options:' )
-  print(u'    -w 400, --width=400' )
-  print(u'    -h 400, --height=200' )
-  print(u'    -b none, --bgcolor=none' )
-  print(u'    -m none, --mask=none' )
-  print(u'    -n 150, --number=150' )
-  print(u'    -u none, --userdict=none' )
-  print(u'    -s none, --stopword=none' )
-  print(u'    -i, --input=<text file>' )
-  print(u'    -o, --output=[output image file]' )
+  print(u'    -p, --plot')
+  print(u'      using matplotlib display cloud image' )
+  print(u'    -w 400, --width=512')
+  print(u'      cloud image\' width' )
+  print(u'    -h 400, --height=512')
+  print(u'      cloud image\' height' )
+  print(u'    -b none, --bgcolor=none')
+  print(u'      cloud image\'s background color' )
+  print(u'    -m none, --mask=none')
+  print(u'      cloud image\'s outline mask image' )
+  print(u'    -n 150, --number=150')
+  print(u'      max words displayed in cloud ' )
+  print(u'    -u none, --userdict=none')
+  print(u'      user dictionary for text cutting' )
+  print(u'    -s none, --stopword=none')
+  print(u'      stopwords list for text cutting' )
+  print(u'    -i, --input=<text file>')
+  print(u'      input text file(s), single file or wildcard like *.txt, *.html' )
+  print(u'    -o, --output=[output image file]')
+  print(u'      if set this option, cloud image will save to file, and will not displayed' )
   return
 
 def ParseArgs(argv):
-  opt_s = 'w:h:b:m:i:o:n:u:s:l:'
-  opt_l = ['width=', 'height=', 'bgcolor=', 'mask=', 'input', 'output', 'number', 'userdict', 'stopword', 'lang']
+  opt_s = 'w:h:b:m:i:o:n:u:s:l:p'
+  opt_l = ['width=', 'height=', 'bgcolor=', 'mask=', 'input=', 'output=', 'number=', 'userdict=', 'stopword=', 'lang=', 'plot']
   try:
     if isinstance(argv, str) or isinstance(argv, unicode) :
       args = argv.split()
@@ -285,6 +296,7 @@ def ParseArgs(argv):
   options['input'] = []
   options['output'] = None
   options['lang'] = 'cn'
+  options['plot'] = False
 
   for o, v in opts:
     if o.lower() in ['-w', '--width']:
@@ -292,7 +304,10 @@ def ParseArgs(argv):
     elif o.lower() in ['-h', '--height']:
       options['height'] = int(v)
     elif o.lower() in ['-b', '--bgcolor']:
-      options['bgcolor'] = v
+      if v.lower() == 'none':
+        options['bgcolor'] = None
+      else:
+        options['bgcolor'] = v
     elif o.lower() in ['-m', '--mask']:
       options['mask'] = v
     elif o.lower() in ['-i', '--input']:
@@ -310,6 +325,8 @@ def ParseArgs(argv):
       options['stopword'] = v
     elif o.lower() in ['-l', '--lang']:
       options['lang'] = v
+    elif o.lower() in ['-p', '--plot']:
+      options['plot'] = True
 
   if len(options['input']) <= 0 and len(args)>0:
     if os.path.isfile(args[0]):
@@ -362,7 +379,7 @@ if __name__ == '__main__':
     print(u'Saving word cloud to image......')
   else:
     print(u'Drawing word cloud to image......')
-  img = DrawCloud(cloud, False, options['output'])
+  img = DrawCloud(cloud, options['plot'], options['output'])
   print(u'Drawing Timing = %.4fs' % (time() - st))
   img.show()
   print(u'-'*72)
