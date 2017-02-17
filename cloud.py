@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #coding:utf-8
-from __future__ import unicode_literals
+#from __future__ import unicode_literals
 from __future__ import division
 
 """
@@ -20,11 +20,14 @@ from time import time
 import chardet
 import re
 import codecs         #codecs提供的open方法来指定打开的文件的语言编码，它会在读取的时候自动转换为内部unicode
-import jieba          #分词包
+
 import numpy as np    #numpy计算包
 import pandas as pd   #数据分析包
 import matplotlib.pyplot as plt
 from PIL import Image
+
+import jieba          #中文分词包
+import MeCab          #日文分词包
 
 from wordcloud import WordCloud
 
@@ -93,13 +96,24 @@ def TextFilter(text, keepNum=False):
 
   content = filter_tags(content)
 
-  content = re.sub(r'\\N', '', content)
-  content = re.sub(r'\{\\kf.*?\}', '', content)
-  content = re.sub(r'\\f.*?%', '', content).replace('.', '')
-  content = re.sub(r'\\(3*)c&H.*?&', '', content).replace('.', '')
+  content = re.sub(r'\[id:.*?\]', '', content)
+  content = re.sub(r'\[al:.*?\]', '', content, flags=re.IGNORECASE)
+  content = re.sub(r'\[ar:.*?\]', '', content, flags=re.IGNORECASE)
+  content = re.sub(r'\[ti:.*?\]', '', content, flags=re.IGNORECASE)
+  content = re.sub(r'\[by:.*?\]', '', content, flags=re.IGNORECASE)
+  content = re.sub(r'\[la:.*?\]', '', content, flags=re.IGNORECASE)
+  content = re.sub(r'\[offset:.*?\]', '', content, flags=re.IGNORECASE)
+  content = re.sub(r'\[\d+:\d+(\.\d+){0,1}\]', '', content, flags=re.IGNORECASE).replace('[:]', '')
+
+  content = re.sub(r'\\N', '', content, flags=re.IGNORECASE)
+  content = re.sub(r'\{\\kf.*?\}', '', content, flags=re.IGNORECASE)
+  content = re.sub(r'\\f.*?%', '', content, flags=re.IGNORECASE)
+  content = re.sub(r'\\(3*)c&H.*?&', '', content, flags=re.IGNORECASE)
+
+  content = re.sub(r'[\u0001-\u009F, \.]', ' ', content, flags=re.IGNORECASE)
 
   if not keepNum:
-    content = re.sub(r'\d+', '', content).replace('.', '')
+    content = re.sub(r'\d+', '', content, flags=re.IGNORECASE).replace('.', '')
 
   return(content)
 
@@ -127,19 +141,32 @@ def LoadText(textfile):
   #print(text[3:])
   return(TextFilter(text))
 
-def CutText(text, userdict=None, stopword=None):
-  if userdict and os.path.isfile(userdict):
-    print('Loading userdicts for cutting...')
-    jieba.load_userdict(userdict)
-    print(u'-'*72)
-  elif os.path.isfile(USERDICTS):
-    print('Loading userdicts for cutting...')
-    jieba.load_userdict(USERDICTS)
-    print(u'-'*72)
-
-  print('> Cutting contents...')
+def CutText(text, userdict=None, stopword=None, lang='cn'):
   segment = []
-  segs = jieba.cut(text) #切词，“么么哒”才能出现
+  if lang.lower()=='jp':
+    m = MeCab.Tagger("-Ochasen")
+    ts = m.parseToNode((text.encode('utf8')))
+    segs = []
+    while ts:
+      #print ts.surface, "\t", ts.feature
+      try:
+        segs.append(unicode(ts.surface))
+      except:
+        pass
+      ts = ts.next
+    pass
+  else:
+    if userdict and os.path.isfile(userdict):
+      print('Loading userdicts for cutting...')
+      jieba.load_userdict(userdict)
+      print(u'-'*72)
+    elif os.path.isfile(USERDICTS):
+      print('Loading userdicts for cutting...')
+      jieba.load_userdict(USERDICTS)
+      print(u'-'*72)
+
+    print('> Making contents segments...')
+    segs = jieba.cut(text) #切词，“么么哒”才能出现
 
   for seg in segs:
     if len(seg) > 1 and seg != '\r\n':
@@ -219,8 +246,8 @@ def Usage():
   return
 
 def ParseArgs(argv):
-  opt_s = 'w:h:b:m:i:o:n:u:s:'
-  opt_l = ['width=', 'height=', 'bgcolor=', 'mask=', 'input', 'output', 'number', 'userdict', 'stopword']
+  opt_s = 'w:h:b:m:i:o:n:u:s:l:'
+  opt_l = ['width=', 'height=', 'bgcolor=', 'mask=', 'input', 'output', 'number', 'userdict', 'stopword', 'lang']
   try:
     if isinstance(argv, str) or isinstance(argv, unicode) :
       args = argv.split()
@@ -245,6 +272,7 @@ def ParseArgs(argv):
   options['stopword'] = None
   options['input'] = []
   options['output'] = None
+  options['lang'] = 'cn'
 
   for o, v in opts:
     if o.lower() in ['-w', '--width']:
@@ -268,6 +296,8 @@ def ParseArgs(argv):
       options['userdict'] = v
     elif o.lower() in ['-s', '--stopword']:
       options['stopword'] = v
+    elif o.lower() in ['-l', '--lang']:
+      options['lang'] = v
 
   if len(options['input']) <= 0 and len(args)>0:
     if os.path.isfile(args[0]):
@@ -296,8 +326,8 @@ if __name__ == '__main__':
 
   st = time()
   print(u'-'*72)
-  print(u'Loading Jieba to cutting text contents......')
-  words = CutText(text, userdict=options['userdict'], stopword=options['stopword'])
+  print(u'Cutting text contents......')
+  words = CutText(text, userdict=options['userdict'], stopword=options['stopword'], lang=options['lang'])
   print(words[:options['number']])
   print(u'Cutting Timing = %.4fs' % (time() - st))
 
