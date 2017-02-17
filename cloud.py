@@ -112,6 +112,7 @@ def LoadTexts(textfiles):
 def LoadText(textfile):
   if not os.path.isfile(textfile): return('')
 
+  print(u'> Loading %s' % os.path.basename(textfile))
   # Read the whole text.
   text = codecs.open(textfile, 'r').read()
 
@@ -136,7 +137,7 @@ def CutText(text, userdict=None, stopword=None):
     jieba.load_userdict(USERDICTS)
     print(u'-'*72)
 
-  print('Cutting text...')
+  print('> Cutting contents...')
   segment = []
   segs = jieba.cut(text) #切词，“么么哒”才能出现
 
@@ -187,14 +188,18 @@ def DrawCloud(wordcloud, useMat=True, saveto=None):
     if saveto:
       fig.savefig(saveto)
     else:
-      plt.show()
+      #plt.show()
+      pass
+    return(plt)
   # The pil way (if you don't have matplotlib)
   else:
     image = wordcloud.to_image()
     if saveto:
       image.save(saveto)
     else:
-      image.show()
+      #image.show()
+      pass
+    return(image)
 
 def ShowImage(image):
   return
@@ -232,8 +237,8 @@ def ParseArgs(argv):
 
   options = dict()
   options['number'] = 150
-  options['width'] = 400
-  options['height'] = 200
+  options['width'] = 512
+  options['height'] = 512
   options['bgcolor'] = None
   options['mask'] = None
   options['userdict'] = None
@@ -315,7 +320,8 @@ if __name__ == '__main__':
     print(u'Saving word cloud to image......')
   else:
     print(u'Drawing word cloud to image......')
-  DrawCloud(cloud, False, options['output'])
+  img = DrawCloud(cloud, False, options['output'])
   print(u'Drawing Timing = %.4fs' % (time() - st))
+  img.show()
   print(u'-'*72)
   print(u'Finished.')
