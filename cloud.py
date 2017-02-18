@@ -38,6 +38,8 @@ os.environ['MECAB_CHARSET']='utf-16'
 
 from wordcloud import WordCloud
 
+__version__ = '1.0.0.0'
+
 SCRIPTNAME = ''
 try:
   SCRIPTNAME = __file__
@@ -64,22 +66,31 @@ FONTPATH  = path.join(CWD, "NotoSansCJKsc-DemiLight.otf")
 #print(os.path.isfile(FONTPATH))
 
 def filter_tags(htmlstr):
-    re_cdata   = re.compile(r'//<!\[CDATA\[[^>]*//\]\]>',re.I)
-    re_script  = re.compile(r'<\s*script[^>]*>[^<]*<\s*/\s*script\s*>',re.I)
-    re_style   = re.compile(r'<\s*style[^>]*>[^<]*<\s*/\s*style\s*>',re.I)
-    re_br      = re.compile(r'<br\s*?/?>')
-    re_h       = re.compile(r'</?\w+[^>]*>')
-    re_comment = re.compile(r'<!--[^>]*-->')
+  idx = htmlstr.find('<body>')
+  if idx >= 0:
+    s = htmlstr[idx:]
+  else:
+    s = htmlstr
 
-    s = re_cdata.sub('',htmlstr)
-    s = re_script.sub('',s)
-    s = re_style.sub('',s)
-    s = re_br.sub('\n',s)
-    s = re_h.sub('',s)
-    s = re_comment.sub('',s)
+  flag = re.I|re.U
+  re_cdata   = re.compile(r'//<!\[CDATA\[[^>]*//\]\]>', flag)
+  re_script  = re.compile(r'<\s*script[^>]*>[^<]*<\s*/\s*script\s*>', flag)
+  re_style   = re.compile(r'<\s*style[^>]*>[^<]*<\s*/\s*style\s*>', flag)
+  re_br      = re.compile(r'<br\s*?/?>', flag)
+  re_h       = re.compile(r'</?\w+[^>]*>', flag)
+  re_comment = re.compile(r'<!--[^>]*-->', flag)
+  re_head    = re.compile(r'(<html.*?>)|(<\?xml.*?\?>)|(<!DOCTYPE.*?>)|(<head>.*?</head>)|(<title.*?/title>)|(<meta.*?/meta>)', flag)
 
-    s = replaceCharEntity(s)
-    return s
+  s = re_cdata.sub('',s)
+  s = re_script.sub('',s)
+  s = re_style.sub('',s)
+  s = re_br.sub('\n',s)
+  s = re_h.sub('',s)
+  s = re_comment.sub('',s)
+  s = re_head.sub('',s)
+
+  s = replaceCharEntity(s)
+  return s
 
 def replaceCharEntity(htmlstr):
   CHAR_ENTITIES = {
@@ -97,38 +108,23 @@ def replaceCharEntity(htmlstr):
 def TextFilter(text, keepNum=False):
   idx = text.find('[Events]')
   if idx >= 0:
-    content = text[idx:]
+    content = text[idx+8:]
   else:
     content = text
-
+  #content = text
   content = filter_tags(content)
 
   pat_lyric = ur'(\[id:.*?\])|(\[al:.*?\])|(\[ar:.*?\])|(\[ti:.*?\])|(\[by:.*?\])|(\[la:.*?\])|(\[offset:.*?\])|(\[\d+:\d+(\.\d+){0,1}\])'
   content = re.sub(pat_lyric, '', content, flags=re.I|re.U)
 
-  #content = re.sub(r'\[id:.*?\]', '', content, flags=re.I|re.U)
-  #content = re.sub(r'\[al:.*?\]', '', content, flags=re.I|re.U)
-  #content = re.sub(r'\[ar:.*?\]', '', content, flags=re.I|re.U)
-  #content = re.sub(r'\[ti:.*?\]', '', content, flags=re.I|re.U)
-  #content = re.sub(r'\[by:.*?\]', '', content, flags=re.I|re.U)
-  #content = re.sub(r'\[la:.*?\]', '', content, flags=re.I|re.U)
-  #content = re.sub(r'\[offset:.*?\]', '', content, flags=re.I|re.U)
-  #content = re.sub(r'\[\d+:\d+(\.\d+){0,1}\]', '', content, flags=re.I|re.U).replace('[:]', '')
+  pat_ass_head = ur'(^\[Script Info\](([(\r)|(\n)|(\r\n)].*?)*?)^\[Events\][(\r)|(\n)|(\r\n)].*?Text$)'
+  pat_ass_diag = ur'(^Format:.*?Text$)|(^Dialogue:.*?,.*?,.*?,.*?,.*?,.*?,.*?,.*?,.*?,)|(\\N)|(\{\\kf.*?\})|(\{\\f.*?\})|(\\f.*?%)|(\{\\(3){0,1}c&H.*?&\})|(\\(3){0,1}c&H.*?&)'
+  # cost too times for multi-line re
+  #content = re.sub(pat_ass_head, ' ', content, flags=re.I|re.U|re.M)
+  content = re.sub(pat_ass_diag, ' ', content, flags=re.I|re.U)
 
-  pat_ass = ur'(\\N)|(\{\\kf.*?\})|(\\f.*?%)|(\\(3*)c&H.*?&)'
-  content = re.sub(pat_ass, ' ', content, flags=re.I|re.U)
-
-  #content = re.sub(r'\\N', '', content, flags=re.I|re.U)
-  #content = re.sub(r'\{\\kf.*?\}', '', content, flags=re.I|re.U)
-  #content = re.sub(r'\\f.*?%', '', content, flags=re.I|re.U)
-  #content = re.sub(r'\\(3*)c&H.*?&', '', content, flags=re.I|re.U)
-
-  pat_misc = ur'(&#\d+;)|([\u0001-\u009F])|([\.|·])'
+  pat_misc = ur'(&#\d+;)|([\u0001-\u001F,\u0021-\u0040,\u005B-\u0060,\u007B-\u00FF])|([\.|·])'
   content = re.sub(pat_misc, ' ', content, flags=re.I|re.U)
-
-  #content = re.sub(ur'&#\d+;', ' ', content, flags=re.I|re.U)
-  #content = re.sub(ur'[\u0001-\u009F]', ' ', content, flags=re.I|re.U)
-  #content = re.sub(ur'[\.|·]', ' ', content, flags=re.I|re.U)
 
   if not keepNum:
     content = re.sub(r'\d+', '', content, flags=re.I).replace('.', ' ')
