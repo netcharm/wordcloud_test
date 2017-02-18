@@ -144,7 +144,7 @@ def LoadTexts(textfiles):
 def LoadText(textfile):
   if not os.path.isfile(textfile): return('')
 
-  print(u'> Loading %s' % os.path.basename(textfile.decode(enc)))
+  print(u'> %s' % os.path.basename(textfile.decode(enc)))
   # Read the whole text.
   text = codecs.open(textfile, 'r').read()
 
@@ -255,6 +255,8 @@ def ShowImage(image):
 def Usage():
   print(u'usage: %s [options] <[-i] input textfile>' % os.path.basename(SCRIPTNAME) )
   print(u'  options:' )
+  print(u'    -?, --help')
+  print(u'      display usage help' )
   print(u'    -p, --plot')
   print(u'      using matplotlib display cloud image' )
   print(u'    -w 400, --width=512')
@@ -278,8 +280,8 @@ def Usage():
   return
 
 def ParseArgs(argv):
-  opt_s = 'w:h:b:m:i:o:n:u:s:l:p'
-  opt_l = ['width=', 'height=', 'bgcolor=', 'mask=', 'input=', 'output=', 'number=', 'userdict=', 'stopword=', 'lang=', 'plot']
+  opt_s = 'w:h:b:m:i:o:n:u:s:l:p?'
+  opt_l = ['width=', 'height=', 'bgcolor=', 'mask=', 'input=', 'output=', 'number=', 'userdict=', 'stopword=', 'lang=', 'plot', 'help']
   try:
     if isinstance(argv, str) or isinstance(argv, unicode) :
       args = argv.split()
@@ -308,7 +310,10 @@ def ParseArgs(argv):
   options['plot'] = False
 
   for o, v in opts:
-    if o.lower() in ['-w', '--width']:
+    if o.lower() in ['-?', '--help']:
+      Usage()
+      sys.exit(2)
+    elif o.lower() in ['-w', '--width']:
       options['width'] = int(v)
     elif o.lower() in ['-h', '--height']:
       options['height'] = int(v)
@@ -323,7 +328,7 @@ def ParseArgs(argv):
       if os.path.isfile(v):
         options['input'].append(v)
       else:
-        options['input'] = glob(v)
+        options['input'].extend(glob(v))
     elif o.lower() in ['-o', '--output']:
       options['output'] = v
     elif o.lower() in ['-n', '--number']:
@@ -337,15 +342,17 @@ def ParseArgs(argv):
     elif o.lower() in ['-p', '--plot']:
       options['plot'] = True
 
-  if len(options['input']) <= 0 and len(args)>0:
-    if os.path.isfile(args[0]):
-      options['input'].append(args[0])
-    else:
-      options['input'] = glob(args[0])
+  if len(args) > 0:
+    for arg in args:
+      if os.path.isfile(arg):
+        options['input'].append(arg)
+      else:
+        options['input'].extend(glob(arg))
   elif len(options['input']) <= 0:
     Usage()
     sys.exit(2)
 
+  #print(options)
   return(options)
 
 
