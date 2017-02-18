@@ -103,25 +103,35 @@ def TextFilter(text, keepNum=False):
 
   content = filter_tags(content)
 
-  content = re.sub(r'\[id:.*?\]', '', content)
-  content = re.sub(r'\[al:.*?\]', '', content, flags=re.I)
-  content = re.sub(r'\[ar:.*?\]', '', content, flags=re.I)
-  content = re.sub(r'\[ti:.*?\]', '', content, flags=re.I)
-  content = re.sub(r'\[by:.*?\]', '', content, flags=re.I)
-  content = re.sub(r'\[la:.*?\]', '', content, flags=re.I)
-  content = re.sub(r'\[offset:.*?\]', '', content, flags=re.I)
-  content = re.sub(r'\[\d+:\d+(\.\d+){0,1}\]', '', content, flags=re.I).replace('[:]', '')
+  pat_lyric = ur'(\[id:.*?\])|(\[al:.*?\])|(\[ar:.*?\])|(\[ti:.*?\])|(\[by:.*?\])|(\[la:.*?\])|(\[offset:.*?\])|(\[\d+:\d+(\.\d+){0,1}\])'
+  content = re.sub(pat_lyric, '', content, flags=re.I|re.U)
 
-  content = re.sub(r'\\N', '', content, flags=re.I)
-  content = re.sub(r'\{\\kf.*?\}', '', content, flags=re.I)
-  content = re.sub(r'\\f.*?%', '', content, flags=re.I)
-  content = re.sub(r'\\(3*)c&H.*?&', '', content, flags=re.I)
+  #content = re.sub(r'\[id:.*?\]', '', content, flags=re.I|re.U)
+  #content = re.sub(r'\[al:.*?\]', '', content, flags=re.I|re.U)
+  #content = re.sub(r'\[ar:.*?\]', '', content, flags=re.I|re.U)
+  #content = re.sub(r'\[ti:.*?\]', '', content, flags=re.I|re.U)
+  #content = re.sub(r'\[by:.*?\]', '', content, flags=re.I|re.U)
+  #content = re.sub(r'\[la:.*?\]', '', content, flags=re.I|re.U)
+  #content = re.sub(r'\[offset:.*?\]', '', content, flags=re.I|re.U)
+  #content = re.sub(r'\[\d+:\d+(\.\d+){0,1}\]', '', content, flags=re.I|re.U).replace('[:]', '')
 
-  content = re.sub(ur'[\u0001-\u009F]', ' ', content, flags=re.I|re.U)
-  content = re.sub(r'[\.|·]', ' ', content, flags=re.I)
+  pat_ass = ur'(\\N)|(\{\\kf.*?\})|(\\f.*?%)|(\\(3*)c&H.*?&)'
+  content = re.sub(pat_ass, ' ', content, flags=re.I|re.U)
+
+  #content = re.sub(r'\\N', '', content, flags=re.I|re.U)
+  #content = re.sub(r'\{\\kf.*?\}', '', content, flags=re.I|re.U)
+  #content = re.sub(r'\\f.*?%', '', content, flags=re.I|re.U)
+  #content = re.sub(r'\\(3*)c&H.*?&', '', content, flags=re.I|re.U)
+
+  pat_misc = ur'(&#\d+;)|([\u0001-\u009F])|([\.|·])'
+  content = re.sub(pat_misc, ' ', content, flags=re.I|re.U)
+
+  #content = re.sub(ur'&#\d+;', ' ', content, flags=re.I|re.U)
+  #content = re.sub(ur'[\u0001-\u009F]', ' ', content, flags=re.I|re.U)
+  #content = re.sub(ur'[\.|·]', ' ', content, flags=re.I|re.U)
 
   if not keepNum:
-    content = re.sub(r'\d+', '', content, flags=re.I).replace('.', '')
+    content = re.sub(r'\d+', '', content, flags=re.I).replace('.', ' ')
 
   return(content)
 
@@ -143,10 +153,8 @@ def LoadText(textfile):
   if ftype and ('encoding' in ftype):
     if (ftype['confidence'] < 0.8) or (not ftype['encoding']):
       ftype['encoding'] = 'utf-8'
-  #text = text.decode(ftype['encoding'])
 
-  text = codecs.open(textfile, 'r', encoding=ftype['encoding'], errors='ignore').read()
-  #print(text[3:])
+  text = codecs.open(textfile, 'r', encoding=ftype['encoding'], errors='replace').read()
   return(TextFilter(text))
 
 def CutText(text, userdict=None, stopword=None, lang='cn'):
@@ -221,6 +229,7 @@ def DrawCloud(wordcloud, useMat=True, saveto=None):
   # the matplotlib way:
   if useMat:
     fig = plt.figure()
+    fig.canvas.set_window_title('Words Cloud')
     plt.imshow(wordcloud)
     plt.axis("off")
     #
@@ -252,7 +261,7 @@ def Usage():
   print(u'      cloud image\' width' )
   print(u'    -h 400, --height=512')
   print(u'      cloud image\' height' )
-  print(u'    -b none, --bgcolor=none')
+  print(u'    -b none, --bgcolor=black')
   print(u'      cloud image\'s background color' )
   print(u'    -m none, --mask=none')
   print(u'      cloud image\'s outline mask image' )
@@ -289,7 +298,7 @@ def ParseArgs(argv):
   options['number'] = 150
   options['width'] = 512
   options['height'] = 512
-  options['bgcolor'] = None
+  options['bgcolor'] = 'black'
   options['mask'] = None
   options['userdict'] = None
   options['stopword'] = None
