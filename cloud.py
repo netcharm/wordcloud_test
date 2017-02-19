@@ -105,26 +105,34 @@ def replaceCharEntity(htmlstr):
       htmlstr = htmlstr.replace(k, CHAR_ENTITIES[k])
   return(htmlstr)
 
-def TextFilter(text, keepNum=False):
-  idx = text.find('[Events]')
-  if idx >= 0:
-    content = text[idx+8:]
-  else:
-    content = text
-  #content = text
-  content = filter_tags(content)
-
+def filter_lrc(content):
   pat_lyric = ur'(\[id:.*?\])|(\[al:.*?\])|(\[ar:.*?\])|(\[ti:.*?\])|(\[by:.*?\])|(\[la:.*?\])|(\[offset:.*?\])|(\[\d+:\d+(\.\d+){0,1}\])'
-  content = re.sub(pat_lyric, '', content, flags=re.I|re.U)
+  return(re.sub(pat_lyric, '', content, flags=re.I|re.U|re.M))
+
+def filter_ass(content):
+  idx = content.find('[Events]')
+  if idx >= 0:
+    content = content[idx+8:]
 
   pat_ass_head = ur'(^\[Script Info\](([(\r)|(\n)|(\r\n)].*?)*?)^\[Events\][(\r)|(\n)|(\r\n)].*?Text$)'
   pat_ass_diag = ur'(^Format:.*?Text$)|(^Dialogue:.*?,.*?,.*?,.*?,.*?,.*?,.*?,.*?,.*?,)|(\\N)|(\{\\kf.*?\})|(\{\\f.*?\})|(\\f.*?%)|(\{\\(3){0,1}c&H.*?&\})|(\\(3){0,1}c&H.*?&)'
   # cost too times for multi-line re
   #content = re.sub(pat_ass_head, ' ', content, flags=re.I|re.U|re.M)
-  content = re.sub(pat_ass_diag, ' ', content, flags=re.I|re.U)
+  return(re.sub(pat_ass_diag, ' ', content, flags=re.I|re.U|re.M))
 
-  pat_misc = ur'(&#\d+;)|([\u0001-\u001F,\u0021-\u0040,\u005B-\u0060,\u007B-\u00FF])|([\.|·])'
-  content = re.sub(pat_misc, ' ', content, flags=re.I|re.U)
+def TextFilter(text, doc='txt', keepNum=False):
+  content = text
+  if doc.lower() in ['html', 'htm', 'xml', 'xhtml']:
+    content = filter_tags(content)
+  elif doc.lower() in ['lrc', 'lyric']:
+    content = filter_lrc(content)
+  elif doc.lower() in ['ass', 'ssa']:
+    content = filter_ass(content)
+  #print(content)
+
+  pat_misc = ur'(&#\d+;)|([\u0001-\u001F,\u0021-\u0040,\u005B-\u0060,\u007B-\u00FF,\u2000-\u206F,\u2190-\u2426,\u3000-\u303F,\u31C0-\u31E3,\uFE10-\uFE4F])|([\.|·|　|…])'
+  content = re.sub(pat_misc, ' ', content, flags=re.I|re.U|re.M)
+  #print(content)
 
   if not keepNum:
     content = re.sub(r'\d+', '', content, flags=re.I).replace('.', ' ')
@@ -151,39 +159,56 @@ def LoadText(textfile):
       ftype['encoding'] = 'utf-8'
 
   text = codecs.open(textfile, 'r', encoding=ftype['encoding'], errors='replace').read()
-  return(TextFilter(text))
+  try:
+    doc = os.path.splitext(textfile)[1][1:]
+  except:
+    doc = 'txt'
+  return(TextFilter(text, doc=doc))
+
+def CutCN(text, userdict=None, stopword=None):
+  if userdict and os.path.isfile(userdict):
+    print('> Loading userdicts for Jieba cutting...')
+    jieba.load_userdict(userdict)
+    print(u'-'*72)
+  elif os.path.isfile(USERDICTS):
+    print('> Loading userdicts for Jieba cutting...')
+    jieba.load_userdict(USERDICTS)
+    print(u'-'*72)
+
+  print('> Making contents segments...')
+  segs = jieba.cut(text) #切词，“么么哒”才能出现
+
+  return(segs)
+
+def CutJP(text, userdict=None, stopword=None):
+  # params: -Oyomi, -Osimple, -Ochasen (only for ipadic), or null string
+  m = MeCab.Tagger("")
+  d = m.dictionary_info()
+  print('> Loading MeCab dict %s @ %s' % (d.filename.encode(enc), d.charset))
+  ts = m.parseToNode(text.encode('utf8'))
+  print('> Making contents segments...')
+  segs = []
+  while ts:
+    #print ts.surface, "\t", ts.feature
+    #print(len(segs), ts.surface)
+    try:
+      #if ts.surface=='\r' or ts.surface=='': pass
+      segs.append(unicode(ts.surface))
+    except:
+      pass
+    ts = ts.next
+
+  return(segs)
 
 def CutText(text, userdict=None, stopword=None, lang='cn'):
   segment = []
   if lang.lower()=='jp':
-    # params: -Oyomi, -Osimple, -Ochasen (only for ipadic), or null string
-    m = MeCab.Tagger("-Oyomi")
-    d = m.dictionary_info()
-    print('> Using MeCab dict %s @ %s' % (d.filename.encode(enc), d.charset))
-    ts = m.parseToNode((text.encode('utf8')))
-    segs = []
-    while ts:
-      #print ts.surface, "\t", ts.feature
-      #print(len(segs), ts.surface)
-      try:
-        #if ts.surface=='\r' or ts.surface=='': pass
-        segs.append(unicode(ts.surface))
-      except:
-        pass
-      ts = ts.next
-    pass
+    try:
+      segs = CutJP(text, userdict=userdict, stopword=stopword)
+    except:
+      segs = CutCN(text, userdict=userdict, stopword=stopword)
   else:
-    if userdict and os.path.isfile(userdict):
-      print('> Loading userdicts for Jieba cutting...')
-      jieba.load_userdict(userdict)
-      print(u'-'*72)
-    elif os.path.isfile(USERDICTS):
-      print('> Loading userdicts for Jieba cutting...')
-      jieba.load_userdict(USERDICTS)
-      print(u'-'*72)
-
-    print('> Making contents segments...')
-    segs = jieba.cut(text) #切词，“么么哒”才能出现
+    segs = CutCN(text, userdict=userdict, stopword=stopword)
 
   for seg in segs:
     if len(seg) > 1 and seg != '\r\n':

@@ -190,6 +190,14 @@ Re
 ZARD
 Zard
 zard
+OP
+ED
+JP
+CN
+OPCN
+OPJP
+EDCN
+EDJP
 聊天记录
 联系人
 联机
