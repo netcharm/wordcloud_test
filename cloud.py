@@ -156,7 +156,8 @@ def LoadText(textfile):
 def CutText(text, userdict=None, stopword=None, lang='cn'):
   segment = []
   if lang.lower()=='jp':
-    m = MeCab.Tagger("-Ochasen")
+    # params: -Oyomi, -Osimple, -Ochasen (only for ipadic), or null string
+    m = MeCab.Tagger("-Oyomi")
     d = m.dictionary_info()
     print('> Using MeCab dict %s @ %s' % (d.filename.encode(enc), d.charset))
     ts = m.parseToNode((text.encode('utf8')))
