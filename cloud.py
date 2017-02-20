@@ -65,6 +65,8 @@ STOPWORDS = path.join(CWD, "stopwords.txt")
 FONTPATH  = path.join(CWD, "NotoSansCJKsc-DemiLight.otf")
 #print(os.path.isfile(FONTPATH))
 
+reflag = re.I|re.U|re.M
+
 def filter_tags(htmlstr):
   idx = htmlstr.find('<body>')
   if idx >= 0:
@@ -72,13 +74,12 @@ def filter_tags(htmlstr):
   else:
     s = htmlstr
 
-  flag = re.I|re.U
-  re_cdata   = re.compile(r'//<!\[CDATA\[[^>]*//\]\]>', flag)
-  re_script  = re.compile(r'<\s*script[^>]*>[^<]*<\s*/\s*script\s*>', flag)
-  re_style   = re.compile(r'<\s*style[^>]*>[^<]*<\s*/\s*style\s*>', flag)
-  re_br      = re.compile(r'<br\s*?/?>', flag)
-  re_h       = re.compile(r'</?\w+[^>]*>', flag)
-  re_comment = re.compile(r'<!--[^>]*-->', flag)
+  re_cdata   = re.compile(r'//<!\[CDATA\[[^>]*//\]\]>', reflag)
+  re_script  = re.compile(r'<\s*script[^>]*>[^<]*<\s*/\s*script\s*>', reflag)
+  re_style   = re.compile(r'<\s*style[^>]*>[^<]*<\s*/\s*style\s*>', reflag)
+  re_br      = re.compile(r'<br\s*?/?>', reflag)
+  re_h       = re.compile(r'</?\w+[^>]*>', reflag)
+  re_comment = re.compile(r'<!--[^>]*-->', reflag)
   re_head    = re.compile(r'(<html.*?>)|(<\?xml.*?\?>)|(<!DOCTYPE.*?>)|(<head>.*?</head>)|(<title.*?/title>)|(<meta.*?/meta>)', flag)
 
   s = re_cdata.sub('',s)
@@ -107,7 +108,7 @@ def replaceCharEntity(htmlstr):
 
 def filter_lrc(content):
   pat_lyric = ur'(\[id:.*?\])|(\[al:.*?\])|(\[ar:.*?\])|(\[ti:.*?\])|(\[by:.*?\])|(\[la:.*?\])|(\[offset:.*?\])|(\[\d+:\d+(\.\d+){0,1}\])'
-  return(re.sub(pat_lyric, '', content, flags=re.I|re.U|re.M))
+  return(re.sub(pat_lyric, '', content, flags=reflag))
 
 def filter_ass(content):
   idx = content.find('[Events]')
@@ -115,10 +116,10 @@ def filter_ass(content):
     content = content[idx+8:]
 
   pat_ass_head = ur'(^\[Script Info\](([(\r)|(\n)|(\r\n)].*?)*?)^\[Events\][(\r)|(\n)|(\r\n)].*?Text$)'
-  pat_ass_diag = ur'(^Format:.*?Text$)|(^Dialogue:.*?,.*?,.*?,.*?,.*?,.*?,.*?,.*?,.*?,)|(\\N)|(\{\\kf.*?\})|(\{\\f.*?\})|(\\f.*?%)|(\{\\(3){0,1}c&H.*?&\})|(\\(3){0,1}c&H.*?&)'
+  pat_ass_diag = ur'(^Format:.*?Text$)|(^Dialogue:.*?,.*?,.*?,.*?,.*?,.*?,.*?,.*?,.*?,)|(\\N)|(\{\\kf.*?\})|(\{\\f.*?\})|(\\f.*?%)|(\{\\(3){0,1}c&H.*?&\})|(\\(3){0,1}c&H.*?&)|(\{\\a\d+\})|(\{\\.*?\})'
   # cost too times for multi-line re
-  #content = re.sub(pat_ass_head, ' ', content, flags=re.I|re.U|re.M)
-  return(re.sub(pat_ass_diag, ' ', content, flags=re.I|re.U|re.M))
+  #content = re.sub(pat_ass_head, ' ', content, flags=reflag)
+  return(re.sub(pat_ass_diag, ' ', content, flags=reflag))
 
 def TextFilter(text, doc='txt', keepNum=False):
   content = text
@@ -131,11 +132,11 @@ def TextFilter(text, doc='txt', keepNum=False):
   #print(content)
 
   pat_misc = ur'(&#\d+;)|([\u0001-\u001F,\u0021-\u0040,\u005B-\u0060,\u007B-\u00FF,\u2000-\u206F,\u2190-\u2426,\u3000-\u303F,\u31C0-\u31E3,\uFE10-\uFE4F])|([\.|·|　|…])'
-  content = re.sub(pat_misc, ' ', content, flags=re.I|re.U|re.M)
+  content = re.sub(pat_misc, ' ', content, flags=reflag)
   #print(content)
 
   if not keepNum:
-    content = re.sub(r'\d+', '', content, flags=re.I).replace('.', ' ')
+    content = re.sub(r'\d+', '', content, flags=reflag).replace('.', ' ')
 
   return(content)
 
