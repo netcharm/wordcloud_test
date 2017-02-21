@@ -220,23 +220,34 @@ def CutText(text, userdict=None, stopword=None, lang='cn'):
   words_df.head()
   if stopword and os.path.isfile(stopword):
     stopwords = pd.read_csv(stopword, index_col=False, quoting=3, sep="\t", names=['stopword'], encoding="utf8")
-    words_df = words_df[~words_df.segment.isin(stopwords.stopword)]
   elif os.path.isfile(STOPWORDS):
     stopwords = pd.read_csv(path.join(CWD, "stopwords.txt"), index_col=False, quoting=3, sep="\t", names=['stopword'], encoding="utf8")
-    words_df = words_df[~words_df.segment.isin(stopwords.stopword)]
+
+  stopwords_c = pd.DataFrame({'stopword':stopwords.stopword.str.capitalize()})
+  stopwords_u = pd.DataFrame({'stopword':stopwords.stopword.str.upper()})
+  stopwords_l = pd.DataFrame({'stopword':stopwords.stopword.str.lower()})
+
+  words_df = words_df[~words_df.segment.isin(stopwords.stopword)]
+  words_df = words_df[~words_df.segment.isin(stopwords_c.stopword)]
+  words_df = words_df[~words_df.segment.isin(stopwords_u.stopword)]
+  words_df = words_df[~words_df.segment.isin(stopwords_l.stopword)]
 
   words_stat = words_df.groupby(by=['segment'])['segment'].agg({'count':np.size})
   words_stat = words_stat.reset_index().sort_values(by='count', ascending=False)
   #print(words_stat)
   return(words_stat)
 
-def CalcCloud(words, num=1000, width=1024, height=1024, bgcolor=None, mask=None):
+def CalcCloud(words, font=FONTPATH, num=1000, width=1024, height=1024, bgcolor=None, mask=None):
   _mask = None
   if mask:
     _mask = np.array(Image.open(path.join(mask)))
   # Generate a word cloud image
   #wordcloud = WordCloud(font_path="NotoSansCJKsc-DemiLight.otf", max_font_size=40, background_color="black")
-  wordcloud = WordCloud(font_path=FONTPATH,
+  if os.path.isfile(font):
+    dst_font = font
+  else:
+    dst_font = FONTPATH
+  wordcloud = WordCloud(font_path=dst_font,
                         width=width, height=height,
                         #max_font_size=40,
                         #min_font_size=4,
@@ -280,6 +291,8 @@ def Usage():
   print(u'  options:' )
   print(u'    -?, --help')
   print(u'      display usage help' )
+  print(u'    -f fontpath, --font=fontpath')
+  print(u'      custom font name with full path & ext' )
   print(u'    -p, --plot')
   print(u'      using matplotlib display cloud image' )
   print(u'    -w 400, --width=512')
@@ -303,8 +316,8 @@ def Usage():
   return
 
 def ParseArgs(argv):
-  opt_s = 'w:h:b:m:i:o:n:u:s:l:p?'
-  opt_l = ['width=', 'height=', 'bgcolor=', 'mask=', 'input=', 'output=', 'number=', 'userdict=', 'stopword=', 'lang=', 'plot', 'help']
+  opt_s = 'w:h:b:m:i:o:n:u:s:l:f:p?'
+  opt_l = ['width=', 'height=', 'bgcolor=', 'mask=', 'input=', 'output=', 'number=', 'userdict=', 'stopword=', 'lang=', 'font=', 'plot', 'help']
   try:
     if isinstance(argv, str) or isinstance(argv, unicode) :
       args = argv.split()
@@ -320,6 +333,7 @@ def ParseArgs(argv):
     sys.exit(2)
 
   options = dict()
+  options['font'] = FONTPATH
   options['number'] = 150
   options['width'] = 512
   options['height'] = 512
@@ -362,6 +376,8 @@ def ParseArgs(argv):
       options['stopword'] = v
     elif o.lower() in ['-l', '--lang']:
       options['lang'] = v
+    elif o.lower() in ['-f', '--font']:
+      options['font'] = v
     elif o.lower() in ['-p', '--plot']:
       options['plot'] = True
 
@@ -403,7 +419,8 @@ if __name__ == '__main__':
   print(u'-'*72)
   print(u'Calcing word cloud layout......')
   cloud = CalcCloud( words,
-    options['number'],
+    font=options['font'],
+    num=options['number'],
     width=options['width'],
     height=options['height'],
     mask=options['mask'],
