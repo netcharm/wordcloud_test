@@ -115,11 +115,13 @@ def filter_ass(content):
   if idx >= 0:
     content = content[idx+8:]
 
-  pat_ass_head = ur'(^\[Script Info\](([(\r)|(\n)|(\r\n)].*?)*?)^\[Events\][(\r)|(\n)|(\r\n)].*?Text$)'
-  pat_ass_diag = ur'(^Format:.*?Text$)|(^Dialogue:.*?,.*?,.*?,.*?,.*?,.*?,.*?,.*?,.*?,)|(\\N)|(\{\\kf.*?\})|(\{\\f.*?\})|(\\f.*?%)|(\{\\(3){0,1}c&H.*?&\})|(\\(3){0,1}c&H.*?&)|(\{\\a\d+\})|(\{\\.*?\})'
+  content = content.strip()
+  pat_ass_head = ur'(^\[Script Info\](([(\r)|(\n)|(\r\n)].*?)*?)^\[Events\][(\r)|(\n)|(\r\n)].*?Text)'
+  pat_ass_diag = ur'(^Format:.*?Text)|(^Dialogue:.*?,.*?,.*?,.*?,.*?,.*?,.*?,.*?,.*?,)|(\\N)|(\{\\kf.*?\})|(\{\\f.*?\})|(\\f.*?%)|(\{\\(3){0,1}c&H.*?&\})|(\\(3){0,1}c&H.*?&)|(\{\\a\d+\})|(\{\\.*?\})'
   # cost too times for multi-line re
   #content = re.sub(pat_ass_head, ' ', content, flags=reflag)
-  return(re.sub(pat_ass_diag, ' ', content, flags=reflag))
+  content = re.sub(pat_ass_diag, ' ', content, flags=reflag)
+  return(content)
 
 def TextFilter(text, doc='txt', keepNum=False):
   content = text
