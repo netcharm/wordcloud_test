@@ -12,11 +12,12 @@ Generating a square wordcloud from the US constitution using default arguments.
 import os
 import sys
 from os import path
-import getopt
 
 from glob import glob
 from time import time
 
+import random
+import getopt
 import chardet
 import re
 import codecs         #codecs提供的open方法来指定打开的文件的语言编码，它会在读取的时候自动转换为内部unicode
@@ -36,7 +37,7 @@ import MeCab          #日文分词包
 os.environ['MECAB_PATH']='D:\\App\\Booklib\\MeCab\\bin\\libmecab.dll'
 os.environ['MECAB_CHARSET']='utf-16'
 
-from wordcloud import WordCloud
+from wordcloud import WordCloud, ImageColorGenerator
 
 __version__ = '1.0.0.0'
 
@@ -66,6 +67,9 @@ FONTPATH  = path.join(CWD, "NotoSansCJKsc-DemiLight.otf")
 #print(os.path.isfile(FONTPATH))
 
 reflag = re.I|re.U|re.M
+
+def ImageGrayGenerator(word, font_size, position, orientation, random_state=None, **kwargs):
+    return "hsl(0, 0%%, %d%%)" % random.randint(60, 100)
 
 def filter_tags(htmlstr):
   idx = htmlstr.find('<body>')
@@ -239,10 +243,18 @@ def CutText(text, userdict=None, stopword=None, lang='cn'):
   #print(words_stat)
   return(words_stat)
 
-def CalcCloud(words, font=FONTPATH, num=1000, width=1024, height=1024, bgcolor=None, mask=None):
+def CalcCloud(words, font=FONTPATH, num=1000, width=1024, height=1024, bgcolor=None, mask=None, recolor='true'):
+  # Loading mask image if mask file is avaliable
   _mask = None
-  if mask:
-    _mask = np.array(Image.open(path.join(mask)))
+  if mask and os.path.isfile(mask):
+    im_src = Image.open(path.join(mask))
+    im_dst = Image.new('RGB', im_src.size, (255, 255, 255))
+    if len(im_src.split()) == 4:
+      im_dst.paste(im_src, mask=im_src.split()[3])
+    else:
+      im_dst.paste(im_src, None)
+    _mask = np.array(im_dst)
+
   # Generate a word cloud image
   #wordcloud = WordCloud(font_path="NotoSansCJKsc-DemiLight.otf", max_font_size=40, background_color="black")
   if os.path.isfile(font):
@@ -258,6 +270,13 @@ def CalcCloud(words, font=FONTPATH, num=1000, width=1024, height=1024, bgcolor=N
                         mask=_mask
                         )
   wordcloud = wordcloud.fit_words(words.head(num).itertuples(index=False))
+
+  # Re-Color the output cloud image with mask image color or gray-scale
+  if mask and recolor:
+    if recolor.lower() in ['true', 't', 'on']:
+      wordcloud = wordcloud.recolor(color_func=ImageColorGenerator(_mask))
+    elif recolor.lower() in ['gray', 'g']:
+      wordcloud = wordcloud.recolor(color_func=ImageGrayGenerator)
   return(wordcloud)
 
 def DrawCloud(wordcloud, useMat=True, saveto=None):
@@ -305,6 +324,8 @@ def Usage():
   print(u'      cloud image\'s background color' )
   print(u'    -m none, --mask=none')
   print(u'      cloud image\'s outline mask image' )
+  print(u'    -c true, --recolor=true|false|gray')
+  print(u'      recolor the output cloud with mask image color' )
   print(u'    -n 150, --number=150')
   print(u'      max words displayed in cloud ' )
   print(u'    -u none, --userdict=none')
@@ -318,8 +339,8 @@ def Usage():
   return
 
 def ParseArgs(argv):
-  opt_s = 'w:h:b:m:i:o:n:u:s:l:f:p?'
-  opt_l = ['width=', 'height=', 'bgcolor=', 'mask=', 'input=', 'output=', 'number=', 'userdict=', 'stopword=', 'lang=', 'font=', 'plot', 'help']
+  opt_s = 'w:h:b:m:i:o:n:u:s:l:f:c:p?'
+  opt_l = ['width=', 'height=', 'bgcolor=', 'mask=', 'input=', 'output=', 'number=', 'userdict=', 'stopword=', 'lang=', 'font=', 'recolor=', 'plot', 'help']
   try:
     if isinstance(argv, str) or isinstance(argv, unicode) :
       args = argv.split()
@@ -341,6 +362,7 @@ def ParseArgs(argv):
   options['height'] = 512
   options['bgcolor'] = 'black'
   options['mask'] = None
+  options['recolor'] = 'true'
   options['userdict'] = None
   options['stopword'] = None
   options['input'] = []
@@ -382,6 +404,9 @@ def ParseArgs(argv):
       options['font'] = v
     elif o.lower() in ['-p', '--plot']:
       options['plot'] = True
+    elif o.lower() in ['-c', '--recolor']:
+      options['recolor'] = v
+
 
   if len(args) > 0:
     for arg in args:
@@ -426,7 +451,8 @@ if __name__ == '__main__':
     width=options['width'],
     height=options['height'],
     mask=options['mask'],
-    bgcolor=options['bgcolor']
+    bgcolor=options['bgcolor'],
+    recolor=options['recolor']
   )
   #print(cloud)
   print(u'Calcing Timing = %.4fs' % (time() - st))
