@@ -20,6 +20,7 @@ import random
 import getopt
 import chardet
 import re
+import string
 import codecs         #codecs提供的open方法来指定打开的文件的语言编码，它会在读取的时候自动转换为内部unicode
 
 import numpy as np    #numpy计算包
@@ -84,7 +85,7 @@ def filter_tags(htmlstr):
   re_br      = re.compile(r'<br\s*?/?>', reflag)
   re_h       = re.compile(r'</?\w+[^>]*>', reflag)
   re_comment = re.compile(r'<!--[^>]*-->', reflag)
-  re_head    = re.compile(r'(<html.*?>)|(<\?xml.*?\?>)|(<!DOCTYPE.*?>)|(<head>.*?</head>)|(<title.*?/title>)|(<meta.*?/meta>)', flag)
+  re_head    = re.compile(r'(<html.*?>)|(<\?xml.*?\?>)|(<!DOCTYPE.*?>)|(<head>.*?</head>)|(<title.*?/title>)|(<meta.*?/meta>)', reflag)
 
   s = re_cdata.sub('',s)
   s = re_script.sub('',s)
@@ -150,7 +151,7 @@ def LoadTexts(textfiles):
   text = []
   for f in textfiles:
     text.append(LoadText(f))
-  return(', '.join(text))
+  return(', ,'.join(text))
 
 def LoadText(textfile):
   if not os.path.isfile(textfile): return('')
@@ -165,7 +166,7 @@ def LoadText(textfile):
     if (ftype['confidence'] < 0.8) or (not ftype['encoding']):
       ftype['encoding'] = 'utf-8'
 
-  text = codecs.open(textfile, 'r', encoding=ftype['encoding'], errors='replace').read()
+  text = codecs.open(textfile, 'r', encoding=ftype['encoding'], errors='replace').read().replace('\ufffd', ', ')
   try:
     doc = os.path.splitext(textfile)[1][1:]
   except:
@@ -200,7 +201,7 @@ def CutJP(text, userdict=None, stopword=None):
     #print(len(segs), ts.surface)
     try:
       #if ts.surface=='\r' or ts.surface=='': pass
-      segs.append(unicode(ts.surface))
+      segs.append(unicode(ts.surface, errors='ignore'))
     except:
       pass
     ts = ts.next
@@ -217,13 +218,15 @@ def CutText(text, userdict=None, stopword=None, lang='cn'):
   else:
     segs = CutCN(text, userdict=userdict, stopword=stopword)
 
+  segs = map(string.strip, segs)
   for seg in segs:
-    if len(seg) > 1 and seg != '\r\n':
+    if len(seg) > 1 and seg != '\r\n' and not seg[:2] in ['o^', 'E^']:
       segment.append(seg)
 
-  #
+  # Making segments to pandas dataframe
   words_df = pd.DataFrame({'segment':segment})
   words_df.head()
+
   if stopword and os.path.isfile(stopword):
     stopwords = pd.read_csv(stopword, index_col=False, quoting=3, sep="\t", names=['stopword'], encoding="utf8")
   elif os.path.isfile(STOPWORDS):
@@ -238,7 +241,9 @@ def CutText(text, userdict=None, stopword=None, lang='cn'):
   words_df = words_df[~words_df.segment.isin(stopwords_u.stopword)]
   words_df = words_df[~words_df.segment.isin(stopwords_l.stopword)]
 
+  #print(words_df)
   words_stat = words_df.groupby(by=['segment'])['segment'].agg({'count':np.size})
+  #print(words_stat)
   words_stat = words_stat.reset_index().sort_values(by='count', ascending=False)
   #print(words_stat)
   return(words_stat)
