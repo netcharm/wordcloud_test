@@ -220,7 +220,15 @@ def CutText(text, userdict=None, stopword=None, lang='cn'):
 
   segs = map(string.strip, segs)
   for seg in segs:
-    if len(seg) > 1 and seg != '\r\n' and not seg[:2] in ['o^', 'E^']:
+    if len(seg)<=1:
+      continue
+    elif seg == '\r\n':
+      continue
+    elif seg[:2] in ['o^', 'E^']:
+      continue
+    elif seg[0].lower() in ['v'] or seg[1].lower() in ['v']:
+      continue
+    else:
       segment.append(seg)
 
   # Making segments to pandas dataframe
