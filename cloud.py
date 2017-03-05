@@ -4,9 +4,9 @@
 from __future__ import division
 
 """
-Minimal Example
+WordCloud Example
 ===============
-Generating a square wordcloud from the US constitution using default arguments.
+Generating a wordcloud with given content & options
 """
 
 import os
@@ -35,8 +35,7 @@ import MeCab          #日文分词包
 #set MECAB_CHARSET=utf8 or shift-jis
 #######################################################
 #os.environ['MECAB_PATH']='C:/Program Files/MeCab/bin/libmecab.dll'
-os.environ['MECAB_PATH']='D:\\App\\Booklib\\MeCab\\bin\\libmecab.dll'
-os.environ['MECAB_CHARSET']='utf-16'
+#os.environ['MECAB_CHARSET']='utf8'
 
 from wordcloud import WordCloud, ImageColorGenerator
 
@@ -184,7 +183,7 @@ def CutCN(text, userdict=None, stopword=None):
     print(u'-'*72)
 
   print('> Making contents segments...')
-  segs = jieba.cut(text) #切词，“么么哒”才能出现
+  segs = jieba.cut(text) #切词
 
   return(segs)
 
@@ -197,10 +196,7 @@ def CutJP(text, userdict=None, stopword=None):
   print('> Making contents segments...')
   segs = []
   while ts:
-    #print ts.surface, "\t", ts.feature
-    #print(len(segs), ts.surface)
     try:
-      #if ts.surface=='\r' or ts.surface=='': pass
       segs.append(unicode(ts.surface, errors='ignore'))
     except:
       pass
