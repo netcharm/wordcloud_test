@@ -22,6 +22,8 @@
   print(u'      custom font name with full path & ext' )
   print(u'    -p, --plot')
   print(u'      using matplotlib display cloud image' )
+  print(u'    -l cn, --lang=cn|jp')
+  print(u'      select text language will cutting, only support cn/jp' )
   print(u'    -w 400, --width=512')
   print(u'      cloud image\' width' )
   print(u'    -h 400, --height=512')
