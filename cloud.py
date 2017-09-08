@@ -278,7 +278,7 @@ def CalcCloud(words, font=FONTPATH, num=1000, width=1024, height=1024, bgcolor=N
                         background_color=bgcolor,
                         mask=_mask
                         )
-  wordcloud = wordcloud.fit_words(words.head(num).itertuples(index=False))
+  wordcloud = wordcloud.fit_words(dict(words.head(num).itertuples(index=False)))
 
   # Re-Color the output cloud image with mask image color or gray-scale
   if mask and recolor:
